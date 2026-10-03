@@ -119,6 +119,36 @@ zaten Client'a ulaşabiliyoruz.
 
 Bu düşünme şekli ileride backend ve database tasarımında çok işine yarayacak.
 
+| İlişki            | Karar                      |
+| ----------------- | -------------------------- |
+| Client → Project  | 1 → N                      |
+| Project → Client  | N → 1                      |
+| Project → Task    | 1 → N                      |
+| Task → Client     | Doğrudan ilişki yok        |
+| Project → Invoice | 1 → N                      |
+| Invoice → Client  | Project üzerinden ulaşılır |
+
+| #   | İşlem                                    | Sen | Asıl sorumluluk             | Eklenecek dosya                                              | Neden?                                                                                    |
+| --- | ---------------------------------------- | --- | --------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| 1   | Yeni müşteri oluştur                     | C   | **ClientManager**           | `src/services/ClientManager.ts`                              | Sisteme yeni Client ekleniyor                                                             |
+| 2   | Müşteriye proje ata                      | P   | **ProjectManager + Client** | `src/services/ProjectManager.ts` + `src/models/Client.ts`    | Manager geçerli Client'ı kontrol eder, Client kendi proje bilgisini taşır                 |
+| 3   | Projeye görev ekle                       | T   | **Project**                 | `src/models/Project.ts`                                      | Task kendi kendini projeye ekleyemez; Project task listesini yönetir                      |
+| 4   | Görevin durumunu değiştir                | T   | **Task** ✅                 | `src/models/Task.ts`                                         | Task kendi durumunu yönetebilir                                                           |
+| 5   | Projenin durumunu değiştir               | P   | **Project** ✅              | `src/models/Project.ts`                                      | Project kendi status'unu yönetir                                                          |
+| 6   | Toplam tahmini çalışma saatini hesapla   | P   | **Project** ✅              | `src/models/Project.ts`                                      | Project kendi Task'larını bildiği için                                                    |
+| 7   | Müşterinin toplam proje değerini hesapla | C   | **Client** ✅               | `src/models/Client.ts`                                       | Client kendi projelerini taşıyacağı için toplam değeri hesaplayabilir                     |
+| 8   | Proje için fatura oluştur                | I   | **InvoiceManager**          | `src/services/InvoiceManager.ts`                             | Önce Project'in gerçekten var olduğunu doğrulamak gerekir                                 |
+| 9   | Faturayı ödendi yap                      | I   | **Invoice** ✅              | `src/models/Invoice.ts`                                      | Tek faturanın kendi davranışıdır                                                          |
+| 10  | Tüm müşterileri listele                  | C   | **ClientManager**           | `src/services/ClientManager.ts`                              | Bir Client diğer Client'ları bilmez                                                       |
+| 11  | Aktif projeleri listele                  | P   | **ProjectManager**          | `src/services/ProjectManager.ts`                             | Bütün Project koleksiyonunda filtreleme yapılır                                           |
+| 12  | Tamamlanan projeleri listele             | P   | **ProjectManager**          | `src/services/ProjectManager.ts`                             | Bütün projeler arasında filtreleme yapılır                                                |
+| 13  | Gecikmiş projeleri bul                   | P   | **ProjectManager**          | `src/services/ProjectManager.ts`                             | Birden fazla proje deadline ve status bilgisine göre kontrol edilir                       |
+| 14  | Belirli müşterinin projelerini getir     | C   | **Client / ProjectManager** | `src/models/Client.ts` veya `src/services/ProjectManager.ts` | Client kendi projelerini taşıyabilir; sistem genelinde sorgu gerekirse Manager kullanılır |
+| 15  | En yüksek bütçeli projeyi bul            | P   | **ProjectManager**          | `src/services/ProjectManager.ts`                             | Bütün projelerin budget değerleri karşılaştırılır                                         |
+| 16  | Toplam kazanılan parayı hesapla          | I   | **InvoiceManager**          | `src/services/InvoiceManager.ts`                             | Bütün paid Invoice'ların toplamı gerekir                                                  |
+| 17  | Ödenmemiş faturaları listele             | I   | **InvoiceManager**          | `src/services/InvoiceManager.ts`                             | Invoice koleksiyonu status değerine göre filtrelenir                                      |
+| 18  | Projelerin detaylı özetini oluştur       | P   | **ReportGenerator**         | `src/utils/ReportGenerator.ts`                               | Bu bir domain davranışı değil, çıktı/raporlama sorumluluğudur                             |
+
 ---
 
 # AŞAMA 2 — Custom Type'ları Oluştur
