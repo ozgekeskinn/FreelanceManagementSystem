@@ -1,6 +1,6 @@
-import { ProjectStatus } from "../types/ProjectTypes";
-import { IClient } from "./IClient";
-import { ITask } from "./ITask";
+import type { ProjectStatus } from "../types/ProjectTypes";
+import type { IClient } from "./IClient";
+import type { ITask } from "./ITask";
 
 export interface IProject {
   readonly id: number;

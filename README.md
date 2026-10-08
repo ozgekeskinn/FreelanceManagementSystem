@@ -1,779 +1,357 @@
-Aynen chat, bu projede de seni **“kodu kopyala-yapıştır” şeklinde değil, projeyi gerçekten tasarlayan junior developer gibi** götürelim. Ben senior gibi sana her aşamada **ne yapacağını, neden yaptığını, hangi TypeScript konusunu kullandığını ve aşamanın sonunda neyin çalışması gerektiğini** söyleyeceğim. **Sen istemeden kod vermeyeceğim.**
+# Freelance Project & Client Management System
 
-Bu proje geçen haftaki TypeScript uygulamasından bir tık daha ciddi çünkü burada sadece class oluşturmayacağız; **Client → Project → Task → Invoice ilişkisini düzgün bir domain yapısı halinde kuracağız.**
+TypeScript ile geliştirilen, freelancer çalışma süreçlerindeki **müşteri, proje, görev ve fatura yönetimini** terminal üzerinden modelleyen modüler bir yönetim sistemi.
 
-# Freelance Project & Client Management System — Yol Haritamız
+Proje; TypeScript özelliklerini gerçek bir domain üzerinde uygulamak amacıyla geliştirilmiştir. Framework, veritabanı veya harici API kullanılmadan; **class, interface, custom type, encapsulation, module yapısı, type assertion ve business rule validation** kavramlarına odaklanır.
 
-## AŞAMA 0 — Projeyi Kur ve Mimariyi Hazırla
+## İçindekiler
 
-İlk aşamada hiçbir business logic yazmayacağız. Önce temiz bir TypeScript projesi oluşturacağız.
+- [Proje Hakkında](#proje-hakkında)
+- [Özellikler](#özellikler)
+- [Teknolojiler](#teknolojiler)
+- [Proje Mimarisi](#proje-mimarisi)
+- [Klasör Yapısı](#klasör-yapısı)
+- [Domain İlişkileri](#domain-ilişkileri)
+- [Business Rules](#business-rules)
+- [TypeScript Kavramları](#typescript-kavramları)
+- [Kurulum](#kurulum)
+- [Komutlar](#komutlar)
+- [Örnek Dashboard Çıktısı](#örnek-dashboard-çıktısı)
+- [Project Summary](#project-summary)
+- [Business Rule Testleri](#business-rule-testleri)
+- [Mock Data Senaryosu](#mock-data-senaryosu)
+- [Teknik Kararlar](#teknik-kararlar)
 
-Proje yapımız yaklaşık şöyle olacak:
+## Proje Hakkında
+
+Freelance Project & Client Management System, bir freelancer'ın temel iş akışını nesne yönelimli bir yapı ile simüle eder.
+
+Sistem içerisinde:
+
+- müşteriler oluşturulur,
+- müşterilere projeler atanır,
+- projelere görevler eklenir,
+- görev ve proje durumları yönetilir,
+- proje bazlı faturalar oluşturulur,
+- tahsilatlar takip edilir,
+- proje ve finans verileri raporlanır,
+- kritik business rule'lar ayrı test senaryolarıyla doğrulanır.
+
+Uygulama tamamen terminal üzerinden çalışır ve veriler örnek senaryoyu oluşturmak için `mockData.ts` üzerinden belleğe yüklenir.
+
+## Özellikler
+
+- Yeni müşteri ekleme
+- Müşteriye proje atama
+- Projeye görev ekleme
+- Görev durumunu değiştirme
+- Proje durumunu değiştirme
+- Projenin toplam tahmini çalışma süresini hesaplama
+- Proje tamamlanma yüzdesini hesaplama
+- Müşterinin toplam proje değerini hesaplama
+- Proje için fatura oluşturma
+- Faturayı ödendi olarak işaretleme
+- Tüm müşterileri listeleme
+- Aktif projeleri listeleme
+- Tamamlanan projeleri listeleme
+- Geciken projeleri bulma
+- Belirli bir müşterinin projelerini getirme
+- En yüksek bütçeli projeyi bulma
+- Ödenmemiş faturaları listeleme
+- Toplam faturalanan tutarı hesaplama
+- Toplam tahsil edilen tutarı hesaplama
+- Detaylı proje özeti üretme
+- Genel freelance dashboard raporu üretme
+- Dışarıdan gelen `unknown` veriyi güvenli şekilde `ProjectStatus` tipine dönüştürme
+- Business rule testlerini ayrı komutla çalıştırma
+
+## Teknolojiler
+
+- **TypeScript 5.9**
+- **Node.js**
+- **npm**
+- ES2020
+- Node16 module resolution
+- TypeScript `strict` mode
+
+Projede framework, database veya external API kullanılmamaktadır.
+
+## Proje Mimarisi
+
+Kod tabanı sorumluluklarına göre katmanlara ayrılmıştır:
+
+- **Models**: Tekil domain nesnelerini ve kendi davranışlarını yönetir.
+- **Interfaces**: Nesnelerin dışarıya sunduğu yapıyı tanımlar.
+- **Types**: Status ve priority gibi sınırlı değer kümelerini tanımlar.
+- **Services / Managers**: Koleksiyon yönetimi, arama, oluşturma ve domain nesneleri arasındaki koordinasyonu sağlar.
+- **Utils**: Raporlama ve dış veri parse işlemlerini gerçekleştirir.
+- **Data**: Uygulamanın örnek çalışma senaryosunu yükler.
+- **Tests**: Business rule senaryolarını doğrular.
+
+```mermaid
+flowchart TD
+    A[index.ts] --> B[loadMockData]
+    A --> C[ClientManager]
+    A --> D[ProjectManager]
+    A --> E[InvoiceManager]
+    A --> F[ReportGenerator]
+    A --> G[InputParser]
+
+    D --> C
+    E --> D
+
+    C --> H[Client]
+    D --> I[Project]
+    E --> J[Invoice]
+    I --> K[Task]
+
+    H --> L[IClient]
+    I --> M[IProject]
+    J --> N[IInvoice]
+    K --> O[ITask]
+```
+
+## Klasör Yapısı
 
 ```text
 FreelanceManagementSystem/
-│
 ├── src/
-│   ├── types/
-│   │   ├── CommonTypes.ts
-│   │   ├── ClientTypes.ts
-│   │   ├── ProjectTypes.ts
-│   │   ├── TaskTypes.ts
-│   │   └── InvoiceTypes.ts
-│   │
+│   ├── data/
+│   │   └── mockData.ts
 │   ├── interfaces/
 │   │   ├── IClient.ts
-│   │   ├── IProject.ts
-│   │   ├── ITask.ts
 │   │   ├── IInvoice.ts
-│   │   └── IReport.ts
-│   │
+│   │   ├── IProject.ts
+│   │   ├── IReport.ts
+│   │   └── ITask.ts
 │   ├── models/
 │   │   ├── Client.ts
+│   │   ├── Invoice.ts
 │   │   ├── Project.ts
-│   │   ├── Task.ts
-│   │   └── Invoice.ts
-│   │
+│   │   └── Task.ts
 │   ├── services/
 │   │   ├── ClientManager.ts
-│   │   ├── ProjectManager.ts
-│   │   └── InvoiceManager.ts
-│   │
+│   │   ├── InvoiceManager.ts
+│   │   └── ProjectManager.ts
+│   ├── tests/
+│   │   ├── businessRuleTests.ts
+│   │   └── runBusinessRuleTests.ts
+│   ├── types/
+│   │   ├── ClientTypes.ts
+│   │   ├── InvoiceTypes.ts
+│   │   ├── ProjectTypes.ts
+│   │   └── TaskTypes.ts
 │   ├── utils/
+│   │   ├── InputParser.ts
 │   │   └── ReportGenerator.ts
-│   │
 │   └── index.ts
-│
+├── .gitignore
 ├── package.json
+├── package-lock.json
 ├── tsconfig.json
 └── README.md
 ```
 
-Buradaki önemli ayrım şu:
-
-**models/** → verinin kendisi.
-
-**services/** → bu veriler üzerinde işlem yapan sınıflar.
-
-**types/** → hangi değerlerin kabul edildiğini belirleyen custom type'lar.
-
-**interfaces/** → nesnelerin sahip olması gereken yapıyı tanımlar.
-
-**utils/** → raporlama gibi yardımcı işlemler.
-
-**index.ts** → senaryoyu çalıştıracağımız ana dosya.
-
-Aşama sonunda sadece proje ayağa kalkmış olacak.
-
----
-
-# AŞAMA 1 — Domain'i Tasarla
-
-Kod yazmadan önce şu dört ana varlığın ilişkisini kafamızda netleştireceğiz:
+## Domain İlişkileri
 
 ```text
-CLIENT
-  │
-  └── PROJECT
-        │
-        ├── TASK
-        ├── TASK
-        ├── TASK
-        │
-        └── INVOICE
+Client 1 ───── N Project
+Project 1 ──── N Task
+Project 1 ──── N Invoice
 ```
 
-Burada önemli mimari kararımız şu olacak:
+### Client → Project
 
-Bir **Client** birden fazla **Project** sahibi olabilir.
+Her proje tek bir müşteriye bağlıdır. `ProjectManager`, proje oluşturulurken ilgili müşterinin gerçekten var olduğunu doğrular. Oluşturulan proje hem merkezi proje listesine hem de müşterinin proje listesine eklenir.
 
-Bir **Project** yalnızca bir Client'a ait olur.
+### Project → Task
 
-Bir **Project** birden fazla **Task** içerir.
+Görevler doğrudan `Project` tarafından yönetilir. Task koleksiyonu private tutulur ve dışarıya kopyası döndürülür.
 
-Bir **Project** için birden fazla Invoice oluşturulabilir.
+### Project → Invoice
 
-Yani aslında:
+Faturalar `projectId` üzerinden projeye bağlanır. `InvoiceManager`, var olmayan bir proje için fatura oluşturulmasını engeller.
 
-```text
-Client     1 ---- N Project
-Project    1 ---- N Task
-Project    1 ---- N Invoice
+## Business Rules
+
+Projede yalnızca veri tutmak yerine domain kuralları da uygulanmaktadır.
+
+### Duplicate ID Kontrolleri
+
+Aynı ID ile ikinci kez:
+
+- Client,
+- Project,
+- Invoice
+
+oluşturulamaz. Geçersiz işlemde `Error` fırlatılır.
+
+### Project Completion Rule
+
+Bir proje yalnızca bütün task'ları `COMPLETED` olduğunda `COMPLETED` durumuna geçirilebilir.
+
+```ts
+if (newStatus === "COMPLETED" && !this.areAllTasksCompleted()) {
+  return false;
+}
 ```
 
-Burada özellikle sana **“hangi nesne hangi bilgiyi gerçekten taşımalı?”** mantığını oturtacağım.
+Task bulunmayan bir projenin yanlışlıkla tamamlanmış kabul edilmesini önlemek için ayrıca task sayısı kontrol edilir.
 
-Mesela Task'ın Client bilgisi taşımasına gerek yok.
+### Invoice Validation
 
-Çünkü:
+Fatura oluşturulmadan önce ilgili `projectId` sistemde aranır. Proje bulunamazsa fatura oluşturulmaz.
 
-```text
-Task
- ↓
-Project
- ↓
-Client
+### Controlled State Changes
+
+Task ve Invoice status değerleri dışarıdan doğrudan değiştirilmek yerine methodlar üzerinden yönetilir:
+
+```ts
+task.changeStatus("COMPLETED");
+invoice.markAsPaid();
 ```
 
-zaten Client'a ulaşabiliyoruz.
+## TypeScript Kavramları
 
-Bu düşünme şekli ileride backend ve database tasarımında çok işine yarayacak.
+Projede aşağıdaki TypeScript özellikleri aktif olarak kullanılmaktadır.
 
-| İlişki            | Karar                      |
-| ----------------- | -------------------------- |
-| Client → Project  | 1 → N                      |
-| Project → Client  | N → 1                      |
-| Project → Task    | 1 → N                      |
-| Task → Client     | Doğrudan ilişki yok        |
-| Project → Invoice | 1 → N                      |
-| Invoice → Client  | Project üzerinden ulaşılır |
+### Custom Types
 
-| #   | İşlem                                    | Sen | Asıl sorumluluk             | Eklenecek dosya                                              | Neden?                                                                                    |
-| --- | ---------------------------------------- | --- | --------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| 1   | Yeni müşteri oluştur                     | C   | **ClientManager**           | `src/services/ClientManager.ts`                              | Sisteme yeni Client ekleniyor                                                             |
-| 2   | Müşteriye proje ata                      | P   | **ProjectManager + Client** | `src/services/ProjectManager.ts` + `src/models/Client.ts`    | Manager geçerli Client'ı kontrol eder, Client kendi proje bilgisini taşır                 |
-| 3   | Projeye görev ekle                       | T   | **Project**                 | `src/models/Project.ts`                                      | Task kendi kendini projeye ekleyemez; Project task listesini yönetir                      |
-| 4   | Görevin durumunu değiştir                | T   | **Task** ✅                 | `src/models/Task.ts`                                         | Task kendi durumunu yönetebilir                                                           |
-| 5   | Projenin durumunu değiştir               | P   | **Project** ✅              | `src/models/Project.ts`                                      | Project kendi status'unu yönetir                                                          |
-| 6   | Toplam tahmini çalışma saatini hesapla   | P   | **Project** ✅              | `src/models/Project.ts`                                      | Project kendi Task'larını bildiği için                                                    |
-| 7   | Müşterinin toplam proje değerini hesapla | C   | **Client** ✅               | `src/models/Client.ts`                                       | Client kendi projelerini taşıyacağı için toplam değeri hesaplayabilir                     |
-| 8   | Proje için fatura oluştur                | I   | **InvoiceManager**          | `src/services/InvoiceManager.ts`                             | Önce Project'in gerçekten var olduğunu doğrulamak gerekir                                 |
-| 9   | Faturayı ödendi yap                      | I   | **Invoice** ✅              | `src/models/Invoice.ts`                                      | Tek faturanın kendi davranışıdır                                                          |
-| 10  | Tüm müşterileri listele                  | C   | **ClientManager**           | `src/services/ClientManager.ts`                              | Bir Client diğer Client'ları bilmez                                                       |
-| 11  | Aktif projeleri listele                  | P   | **ProjectManager**          | `src/services/ProjectManager.ts`                             | Bütün Project koleksiyonunda filtreleme yapılır                                           |
-| 12  | Tamamlanan projeleri listele             | P   | **ProjectManager**          | `src/services/ProjectManager.ts`                             | Bütün projeler arasında filtreleme yapılır                                                |
-| 13  | Gecikmiş projeleri bul                   | P   | **ProjectManager**          | `src/services/ProjectManager.ts`                             | Birden fazla proje deadline ve status bilgisine göre kontrol edilir                       |
-| 14  | Belirli müşterinin projelerini getir     | C   | **Client / ProjectManager** | `src/models/Client.ts` veya `src/services/ProjectManager.ts` | Client kendi projelerini taşıyabilir; sistem genelinde sorgu gerekirse Manager kullanılır |
-| 15  | En yüksek bütçeli projeyi bul            | P   | **ProjectManager**          | `src/services/ProjectManager.ts`                             | Bütün projelerin budget değerleri karşılaştırılır                                         |
-| 16  | Toplam kazanılan parayı hesapla          | I   | **InvoiceManager**          | `src/services/InvoiceManager.ts`                             | Bütün paid Invoice'ların toplamı gerekir                                                  |
-| 17  | Ödenmemiş faturaları listele             | I   | **InvoiceManager**          | `src/services/InvoiceManager.ts`                             | Invoice koleksiyonu status değerine göre filtrelenir                                      |
-| 18  | Projelerin detaylı özetini oluştur       | P   | **ReportGenerator**         | `src/utils/ReportGenerator.ts`                               | Bu bir domain davranışı değil, çıktı/raporlama sorumluluğudur                             |
+Toplam 5 custom type bulunmaktadır:
 
----
-
-# AŞAMA 2 — Custom Type'ları Oluştur
-
-İlk gerçek TypeScript konusu burada başlayacak.
-
-Henüz class yok.
-
-Önce sistemde serbest bırakmak istemediğimiz değerleri belirleyeceğiz.
-
-Örneğin:
-
-```text
-ClientStatus
-
-ProjectStatus
-
-TaskStatus
-
-TaskPriority
-
-InvoiceStatus
+```ts
+type ClientStatus = "ACTIVE" | "INACTIVE";
+type ProjectStatus = "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+type TaskStatus = "TODO" | "IN_PROGRESS" | "COMPLETED";
+type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+type InvoiceStatus = "UNPAID" | "PAID" | "CANCELLED";
 ```
 
-Böylece biri gelip:
+### Interfaces
 
-```text
-Project Status = "uçuyor"
+Domain yapıları 5 interface ile tanımlanmıştır:
+
+- `IClient`
+- `IProject`
+- `ITask`
+- `IInvoice`
+- `IReport`
+
+### Classes
+
+Projede model ve manager sınıfları ayrılmıştır:
+
+- `Client`
+- `Project`
+- `Task`
+- `Invoice`
+- `ClientManager`
+- `ProjectManager`
+- `InvoiceManager`
+
+### Encapsulation
+
+Koleksiyon ve status gibi kontrollü tutulması gereken alanlarda `private` kullanılır.
+
+```ts
+private readonly _projects: IProject[] = [];
+private readonly _tasks: ITask[] = [];
+private _status: ProjectStatus = "PLANNED";
 ```
 
-gibi saçma bir değer veremeyecek. 😄
+Dizi getter'ları gerçek private array yerine shallow copy döndürür:
 
-Project için düşün:
-
-```text
-planned
-active
-completed
-cancelled
+```ts
+get tasks(): ITask[] {
+  return [...this._tasks];
+}
 ```
 
-Task:
+Böylece dış kod private koleksiyonu doğrudan değiştiremez.
 
-```text
-todo
-in-progress
-completed
+### `readonly`
+
+ID'ler ve değiştirilmemesi gereken dependency referansları `readonly` olarak tanımlanmıştır.
+
+```ts
+public readonly id: number
+constructor(private readonly clientManager: ClientManager) {}
 ```
 
-Priority:
+### `import type`
 
-```text
-low
-medium
-high
-critical
+Runtime'da kullanılmayan ve yalnızca TypeScript tip sistemi için gerekli importlarda `import type` kullanılmıştır.
+
+```ts
+import type { ProjectStatus } from "../types/ProjectTypes";
 ```
 
-Invoice:
+Runtime'da `new` ile kullanılan class'lar ise normal import edilir.
 
-```text
-unpaid
-paid
-cancelled
+### Type Assertion ve `unknown`
+
+Dışarıdan gelen veri önce `unknown` olarak ele alınır, runtime validation sonrasında `ProjectStatus` olarak assertion uygulanır.
+
+```ts
+export function parseProjectStatus(value: unknown): ProjectStatus {
+  if (
+    typeof value === "string" &&
+    (value === "PLANNED" ||
+      value === "ACTIVE" ||
+      value === "COMPLETED" ||
+      value === "CANCELLED")
+  ) {
+    return value as ProjectStatus;
+  }
+
+  throw new Error("Geçersiz proje durumu.");
+}
 ```
 
-Burada hedefimiz minimum **5 custom type** şartını daha başlangıçta düzgün şekilde karşılamak.
+Bu yaklaşım doğrudan ve kontrolsüz bir `as ProjectStatus` kullanımının önüne geçer.
 
-Ayrıca ID için de ortak bir type tasarlayıp tasarlamayacağımızı konuşacağız.
+### Constructor-Based Dependency Management
 
----
+Manager bağımlılıkları constructor üzerinden verilir:
 
-# AŞAMA 3 — Interface Katmanını Oluştur
-
-Şimdi şunu tanımlayacağız:
-
-> “Bir Client nasıl görünmek zorunda?”
-
-Henüz gerçek Client üretmiyoruz.
-
-Sadece contract oluşturuyoruz.
-
-Örneğin zihinsel olarak:
-
-```text
-IClient
-
-id
-name
-email
-companyName
-status
+```ts
+const clientManager = new ClientManager();
+const projectManager = new ProjectManager(clientManager);
+const invoiceManager = new InvoiceManager(projectManager);
 ```
 
-Aynı şekilde:
+Bu yapı bağımlılıkların açık şekilde görülmesini ve sorumlulukların ayrılmasını sağlar.
 
-```text
-IProject
-ITask
-IInvoice
+## Kurulum
+
+Projeyi klonladıktan veya indirdikten sonra proje dizininde:
+
+```bash
+npm install
 ```
 
-Fakat projede minimum 5 interface istendiği için bir tane daha ekleyeceğiz.
+TypeScript dosyalarını derlemek için:
 
-Ben burada `IReport` veya benzeri bir rapor interface'i kullanmayı daha mantıklı buluyorum.
-
-Bu aşamada interface ile class farkını özellikle oturtacağız:
-
-```text
-Interface
-   ↓
-"Nasıl görünmeli?"
-
-Class
-   ↓
-"Nasıl davranmalı?"
+```bash
+npm run build
 ```
 
-Bu ayrımı anlaman çok önemli.
+Uygulamayı çalıştırmak için:
 
----
-
-# AŞAMA 4 — Task Modelini Oluştur
-
-Model geliştirmeye en küçük nesneden başlayacağız.
-
-Yani önce:
-
-```text
-Task
+```bash
+npm start
 ```
 
-Çünkü Task'ın başka bir modele bağımlılığı çok az.
-
-Burada ilk defa şunları gerçekten kullanacağız:
-
-```text
-class
-constructor
-properties
-private
-public
-interface implementation
-```
-
-Task'ın temel sorumlulukları:
-
-```text
-Task oluşturmak
-Task durumunu değiştirmek
-Task tamamlandı mı kontrol etmek
-```
-
-Önemli nokta:
-
-Task'ın status değerini herkesin dışarıdan kafasına göre değiştirmesine izin vermeyeceğiz.
-
-Burada **encapsulation** mantığı başlayacak.
-
-Yani:
-
-```text
-task.status = ...
-```
-
-yerine kontrollü davranış tasarlamayı öğreneceğiz.
-
----
-
-# AŞAMA 5 — Client Modelini Oluştur
-
-Şimdi Client class'ını oluşturacağız.
-
-Client artık sadece:
-
-```text
-id
-name
-email
-companyName
-status
-```
-
-taşımayacak.
-
-Proje gereksiniminde özellikle:
-
-> Client kendi proje bilgisini taşıyabilecek.
-
-denmiş.
-
-Dolayısıyla Client ile Project arasında ilişki kurmamız gerekiyor.
-
-Ama burada circular dependency gibi konulara bulaşmadan temiz bir tasarım yapacağız.
-
-Client şu tarz sorumluluklara sahip olacak:
-
-```text
-Client bilgilerini tutmak
-
-Client'ın projelerini takip etmek
-
-Client'a proje eklemek
-
-Client'ın toplam proje değerini hesaplamak
-```
-
-Burada önemli bir soru soracağız:
-
-> Toplam proje değerini Client mı hesaplamalı, ClientManager mı?
-
-Bu tür kararları sana ezberletmeyeceğim; **neden birini seçtiğimizi beraber değerlendireceğiz.**
-
----
-
-# AŞAMA 6 — Project Modelini Oluştur
-
-Burası projenin en önemli modeli.
-
-Project şu bilgileri taşıyacak:
-
-```text
-id
-title
-client
-budget
-startDate
-deadline
-status
-tasks
-```
-
-Ama yalnızca veri taşıyan aptal bir object olmayacak.
-
-Project kendi task listesini yönetebilecek.
-
-Yani sorumlulukları arasında:
-
-```text
-Task ekleme
-
-Task bulma
-
-Task durumunu değiştirme
-
-Toplam estimatedHours hesaplama
-
-Tamamlanma yüzdesini hesaplama
-
-Bütün task'lar tamamlandı mı kontrol etme
-```
-
-olacak.
-
-Burada ilk ciddi business rule'umuzu ekleyeceğiz:
-
-```text
-Project COMPLETED yapılmak isteniyor
-          ↓
-Tüm Task'lar completed mı?
-          ↓
-     YES       NO
-      ↓         ↓
- completed    hata
-```
-
-Bu proje için CV'lik kısmın başladığı yerlerden biri tam olarak burası.
-
-Çünkü artık sadece property tutmuyoruz.
-
-**Business rule uyguluyoruz.**
-
----
-
-# AŞAMA 7 — Invoice Modelini Oluştur
-
-Invoice:
-
-```text
-id
-projectId
-amount
-status
-```
-
-bilgilerini taşıyacak.
-
-Invoice'ın en önemli davranışı:
-
-```text
-markAsPaid()
-```
-
-mantığı olacak.
-
-Burada yine encapsulation kullanacağız.
-
-Invoice status dışarıdan kontrolsüz değiştirilmemeli.
-
-Ayrıca:
-
-```text
-paid
-unpaid
-cancelled
-```
-
-durumları arasındaki geçişlerin mantıklı olup olmadığını düşüneceğiz.
-
----
-
-# AŞAMA 8 — ClientManager
-
-Şimdi model katmanından service/manager katmanına geçiyoruz.
-
-ClientManager sistemdeki bütün müşterileri yönetecek.
-
-Burada:
-
-```text
-private clients
-```
-
-benzeri merkezi bir koleksiyonumuz olacak.
-
-ClientManager'ın sorumlulukları:
-
-```text
-Client ekle
-
-ID ile Client bul
-
-Tüm Client'ları getir
-
-Client var mı kontrol et
-```
-
-Burada önemli mimari fark:
-
-```text
-Client
-→ tek bir müşterinin davranışları
-
-ClientManager
-→ sistemdeki bütün müşterilerin yönetimi
-```
-
-Bu farkı oturtacağız.
-
----
-
-# AŞAMA 9 — ProjectManager
-
-Burası servis katmanının en önemli bölümü.
-
-Project oluştururken önce:
-
-```text
-ClientManager
-      ↓
-Client var mı?
-      ↓
-YES        NO
- ↓          ↓
-Project    hata
-oluştur
-```
-
-kontrolü yapılacak.
-
-Çünkü proje gereksinimi özellikle bunu istiyor.
-
-ProjectManager daha sonra şu işlemleri yapacak:
-
-```text
-Project oluştur
-
-Project bul
-
-Project status değiştir
-
-Task ekle
-
-Aktif projeleri getir
-
-Tamamlanan projeleri getir
-
-Belirli müşterinin projelerini getir
-
-Gecikmiş projeleri bul
-
-En yüksek bütçeli projeyi bul
-```
-
-Burada `.filter()`, `.find()`, `.reduce()` gibi JavaScript/TypeScript dizi işlemlerini ciddi şekilde kullanmaya başlayacağız.
-
----
-
-# AŞAMA 10 — InvoiceManager
-
-InvoiceManager:
-
-```text
-Invoice oluştur
-
-Invoice bul
-
-Invoice'ı paid yap
-
-Unpaid invoice'ları getir
-
-Toplam invoiced hesapla
-
-Toplam collected hesapla
-```
-
-işlemlerinden sorumlu olacak.
-
-Fakat yine bir business rule olacak.
-
-Invoice oluşturulurken:
-
-```text
-projectId
-   ↓
-ProjectManager
-   ↓
-Project var mı?
-```
-
-kontrolü yapılmalı.
-
-Olmayan proje için fatura oluşturamayız.
-
-Böylece ilişkimiz:
-
-```text
-ClientManager
-      ↓
-ProjectManager
-      ↓
-InvoiceManager
-```
-
-haline gelecek.
-
----
-
-# AŞAMA 11 — Type Assertion Kullan
-
-Projede type assertion sırf zorunluluk yerine getirilsin diye saçma bir yere eklenmemeli.
-
-Gerçekçi bir senaryo oluşturacağız.
-
-Mesela terminalden veya dışarıdan geldiğini varsaydığımız bir veri:
-
-```text
-unknown
-```
-
-olarak kabul edilecek.
-
-Daha sonra gerekli kontrollerden sonra belirli bir TypeScript type'ına dönüştürülecek.
-
-Burada özellikle:
-
-```text
-unknown
-```
-
-ile
-
-```text
-any
-```
-
-arasındaki farkı göreceğiz.
-
-Çünkü projede `any` yasak.
-
-Bu aslında TypeScript öğrenmen açısından projenin önemli bölümlerinden biri.
-
----
-
-# AŞAMA 12 — Hesaplama Fonksiyonları
-
-Burada bazı işlemleri class'ların içine gömmek yerine reusable function olarak ayıracağız.
-
-Örneğin:
-
-```text
-Toplam proje değeri
-
-Toplam estimated hours
-
-Completion percentage
-
-Toplam kazanılan para
-```
-
-gibi hesaplamaların hangisinin function, hangisinin class method olması gerektiğine karar vereceğiz.
-
-Amaç:
-
-> “Her şeyi class'a doldurmak” da kötü tasarımdır.
-
-bunu göstermek.
-
----
-
-# AŞAMA 13 — Gecikmiş Proje Mantığı
-
-Deadline artık gerçekten kullanılmaya başlayacak.
-
-Mantığımız:
-
-```text
-deadline < bugün
-AND
-status !== completed
-AND
-status !== cancelled
-```
-
-ise:
-
-```text
-OVERDUE
-```
-
-kabul edebiliriz.
-
-Burada Date nesnesiyle çalışma pratiği de yapacağız.
-
----
-
-# AŞAMA 14 — ReportGenerator
-
-Artık elimizde yeterince veri ve manager olacak.
-
-Şimdi:
-
-```text
-utils/ReportGenerator.ts
-```
-
-dosyasını oluşturacağız.
-
-Bu class'ın görevi veri değiştirmek değil.
-
-Sadece mevcut veriden rapor üretmek.
-
-Örneğin proje özeti:
-
-```text
-========================================
-
-Project: E-Commerce Website
-
-Client:
-ABC Teknoloji
-
-Budget:
-120.000 TL
-
-Tasks:
-✓ UI Design
-✓ Authentication
-✓ Product Management
-✗ Payment System
-
-Status:
-ACTIVE
-
-Completion:
-75%
-
-Estimated Work:
-94 hours
-
-Invoice:
-60.000 TL / UNPAID
-
-========================================
-```
-
-Burada separation of concerns konusunu gerçekten uygulamış olacağız.
-
-Project veri tutacak.
-
-ProjectManager projeleri yönetecek.
-
-ReportGenerator sadece raporlayacak.
-
----
-
-# AŞAMA 15 — Dashboard Report
-
-Sonra genel dashboard'u oluşturacağız.
-
-Hesaplanacak değerler:
-
-```text
-Client sayısı
-
-Project sayısı
-
-Active Project sayısı
-
-Completed Project sayısı
-
-Planned Project sayısı
-
-Cancelled Project sayısı
-
-Toplam Project Budget
-
-Toplam Invoice miktarı
-
-Toplam tahsil edilen miktar
-
-Ödenmemiş miktar
-```
-
-Terminal çıktımız kabaca:
+## Komutlar
+
+| Komut                   | Açıklama                                                              |
+| ----------------------- | --------------------------------------------------------------------- |
+| `npm install`           | Gerekli development dependency'lerini yükler                          |
+| `npm run build`         | TypeScript kaynaklarını `dist/` klasörüne derler                      |
+| `npm start`             | Derlenmiş ana uygulamayı çalıştırır                                   |
+| `npm run test:business` | Önce projeyi build eder, ardından business rule testlerini çalıştırır |
+
+## Örnek Dashboard Çıktısı
 
 ```text
 ========== FREELANCE DASHBOARD ==========
@@ -793,201 +371,121 @@ Total Invoiced:
 
 Total Collected:
 210.000 TL
-
-Outstanding:
-110.000 TL
-
 ==========================================
 ```
 
-şeklinde olacak.
+## Project Summary
+
+Her proje için müşteri, bütçe, görevler, durum, tamamlanma oranı, tahmini çalışma süresi ve faturalar ayrı bir özet halinde üretilir.
+
+Örnek:
+
+```text
+Project: E-Commerce Website
+
+Client: ABC Teknoloji
+
+Budget: 120.000 TL
+
+Tasks:
+✓ UI Tasarımı
+✓ Authentication
+✗ Product Management
+✗ Payment System
+
+Status: ACTIVE
+
+Completion: 50%
+
+Estimated Work: 94 hours
+
+Invoices:
+60.000 TL / PAID
+40.000 TL / UNPAID
+```
+
+Tamamlanma yüzdesi raporlama aşamasında iki ondalık basamağa kadar formatlanır. Örneğin `33.333...` değeri terminalde `33.33%` olarak gösterilir.
+
+## Business Rule Testleri
+
+Business rule testleri ana uygulamadan bağımsız çalıştırılır:
+
+```bash
+npm run test:business
+```
+
+Mevcut test senaryoları:
+
+1. Duplicate Client ID engellenir.
+2. Olmayan Client için Project oluşturulamaz.
+3. Duplicate Project ID engellenir.
+4. Tamamlanmamış Task bulunan Project `COMPLETED` yapılamaz.
+5. Olmayan Project için Invoice oluşturulamaz.
+6. Duplicate Invoice ID engellenir.
+7. Geçersiz external Project Status reddedilir.
+8. Tüm Task'lar tamamlandıktan sonra Project `COMPLETED` yapılabilir.
+
+Güncel test sonucu:
+
+```text
+TEST 1 - Duplicate Client ID
+PASSED
+
+TEST 2 - Project With Invalid Client
+PASSED
+
+TEST 3 - Duplicate Project ID
+PASSED
+
+TEST 4 - Complete Project With Incomplete Tasks
+PASSED
+
+TEST 5 - Invoice With Invalid Project
+PASSED
+
+TEST 6 - Duplicate Invoice ID
+PASSED
+
+TEST 7 - Invalid Project Status
+PASSED
+
+TEST 8 - Complete Project With Completed Tasks
+PASSED
+```
+
+**Sonuç: 8/8 business rule testi başarılı.**
+
+## Mock Data Senaryosu
+
+Ana demo senaryosu aşağıdaki verilerle çalışır:
+
+| Veri                | Adet / Değer |
+| ------------------- | -----------: |
+| Clients             |            3 |
+| Projects            |            7 |
+| Tasks               |           25 |
+| Invoices            |            8 |
+| Active Projects     |            3 |
+| Completed Projects  |            2 |
+| Planned Projects    |            1 |
+| Cancelled Projects  |            1 |
+| Total Project Value |   485.000 TL |
+| Total Invoiced      |   320.000 TL |
+| Total Collected     |   210.000 TL |
+
+Mock data, production data kaynağı yerine yalnızca uygulama davranışlarını göstermek amacıyla kullanılmaktadır.
+
+## Teknik Kararlar
+
+- **Models ve Managers ayrıldı.** Model class'ları kendi nesnelerinin davranışlarını yönetirken manager class'ları koleksiyon yönetimi, arama ve nesneler arası koordinasyon görevlerini üstlenir.
+- **Client kendi proje bilgisini taşır.** Yeni proje oluşturulduğunda `ProjectManager`, projeyi hem kendi koleksiyonuna hem de ilgili Client'ın proje listesine ekler.
+- **Project kendi Task koleksiyonunu yönetir.** Task ekleme ve completion hesapları Project modeli içinde tutulur.
+- **Status alanları kontrollü yönetilir.** Project ve Invoice gibi kritik durumlarda doğrudan property mutation yerine method tabanlı geçişler tercih edilir.
+- **Constructor üzerinden COMPLETED Project oluşturulamaz.** Project başlangıçta `PLANNED` olur. Böylece tamamlanma kuralı constructor üzerinden bypass edilemez.
+- **Private collection'lar dışarıya doğrudan verilmez.** Getter'lar array kopyası döndürerek dışarıdan istemsiz mutation riskini azaltır.
+- **Raporlama domain modellerinden ayrıdır.** Terminal çıktıları `ReportGenerator` tarafından hazırlanır; model class'ları presentation sorumluluğu taşımaz.
+- **Test runner ana uygulamadan ayrıdır.** `npm start` yalnızca uygulamayı, `npm run test:business` ise business rule testlerini çalıştırır.
 
 ---
 
-# AŞAMA 16 — Final Test Datası
-
-Ancak **bütün sistem bittikten sonra** büyük test datası oluşturacağız.
-
-Direkt başta 25 Task girip kendimizi delirtmeyeceğiz. :D
-
-Önce küçük veriyle:
-
-```text
-1 Client
-1 Project
-2 Task
-1 Invoice
-```
-
-test edeceğiz.
-
-Her şey doğru çalışınca final senaryoya geçeceğiz:
-
-```text
-3 Client
-   ↓
-7 Project
-   ↓
-25 Task
-   ↓
-8 Invoice
-```
-
-Böylece hata olduğunda 43 tane nesnenin arasında hata aramayız.
-
----
-
-# AŞAMA 17 — Business Rule Testleri
-
-Final dashboard çıkınca proje **bitmiş sayılmayacak.**
-
-Şunları özellikle kırmaya çalışacağız:
-
-```text
-Olmayan Client'a Project ekle.
-
-Olmayan Project'e Invoice ekle.
-
-Task'ları tamamlanmamış Project'i completed yap.
-
-Aynı ID ile iki Client ekle.
-
-Aynı ID ile iki Project ekle.
-
-Paid Invoice'ı tekrar paid yap.
-
-Cancelled Project'i completed yapmaya çalış.
-
-Olmayan Task'ın durumunu değiştir.
-
-Deadline geçmiş projeyi kontrol et.
-```
-
-Senior mantığında geliştirme biraz da budur:
-
-> Happy path çalışıyor diye sistem doğru değildir.
-
-Yanlış kullanımda ne yaptığı da önemlidir.
-
----
-
-# AŞAMA 18 — Refactor
-
-En son kodu tekrar inceleyeceğiz.
-
-Özellikle şunları arayacağız:
-
-```text
-Tekrarlanan kod var mı?
-
-Gereksiz public property var mı?
-
-Private olması gereken alan var mı?
-
-Manager çok fazla sorumluluk almış mı?
-
-Model çok fazla sorumluluk almış mı?
-
-any kullanılmış mı?
-
-Gereksiz type assertion var mı?
-
-Dosyalar doğru modüllere ayrılmış mı?
-
-Naming tutarlı mı?
-```
-
-Bu aşamada kodu biraz daha profesyonel seviyeye çekeceğiz.
-
----
-
-# AŞAMA 19 — README ve GitHub
-
-En son GitHub tarafına geçeceğiz.
-
-README'de sadece:
-
-> Freelance management application yaptım.
-
-demeyeceğiz.
-
-Mimariyi de göstereceğiz:
-
-```text
-Features
-Project Structure
-Domain Model
-TypeScript Concepts Used
-Business Rules
-Example Output
-Installation
-Running the Project
-```
-
-gibi bölümler olacak.
-
-CV açısından özellikle:
-
-```text
-TypeScript
-OOP
-Modular Architecture
-Encapsulation
-Domain Relationships
-Business Rules
-Service Layer
-```
-
-öne çıkarılacak.
-
----
-
-## Bizim çalışma sıramız
-
-Özetle şu sırayı kesinlikle bozmayalım:
-
-```text
-0  Project Setup
-        ↓
-1  Domain Design
-        ↓
-2  Custom Types
-        ↓
-3  Interfaces
-        ↓
-4  Task Model
-        ↓
-5  Client Model
-        ↓
-6  Project Model
-        ↓
-7  Invoice Model
-        ↓
-8  ClientManager
-        ↓
-9  ProjectManager
-        ↓
-10 InvoiceManager
-        ↓
-11 Type Assertion
-        ↓
-12 Calculations
-        ↓
-13 Overdue Logic
-        ↓
-14 ReportGenerator
-        ↓
-15 Dashboard
-        ↓
-16 Final Test Data
-        ↓
-17 Business Rule Tests
-        ↓
-18 Refactor
-        ↓
-19 README + GitHub
-```
-
-Ve özellikle **AŞAMA 0–3'ü hızlı geçmeyeceğiz**. Çünkü bu projenin asıl öğretici tarafı 25 tane Task yazmak değil; **neden `ProjectManager` ayrı, `Project` ayrı; neden status için `string` yerine custom type kullanıyoruz; hangi property private olmalı; hangi davranış hangi class'a ait olmalı** bunları kavraman.
-
-İlk başlayacağımız yer **AŞAMA 0: proje klasörünü oluşturma + TypeScript kurulumu + `tsconfig` + klasör mimarisi** olacak. Orada da önce sana terminalde ne yapacağını tek tek söyleyeceğim; daha domain koduna geçmeyeceğiz.
+Bu proje, TypeScript'in tip sistemi ve nesne yönelimli programlama yaklaşımını gerçekçi bir freelance yönetim senaryosu üzerinde uygulamak amacıyla geliştirilmiştir.

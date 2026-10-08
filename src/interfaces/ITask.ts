@@ -1,4 +1,4 @@
-import { TaskPriority, TaskStatus } from "../types/TaskTypes";
+import type { TaskPriority, TaskStatus } from "../types/TaskTypes";
 
 export interface ITask {
   readonly id: number;

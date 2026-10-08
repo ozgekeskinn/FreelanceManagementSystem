@@ -1,4 +1,4 @@
-import { InvoiceStatus } from "../types/InvoiceTypes";
+import type { InvoiceStatus } from "../types/InvoiceTypes";
 
 export interface IInvoice {
   readonly id: number;

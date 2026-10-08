@@ -1,5 +1,5 @@
-import { ClientStatus } from "../types/ClientTypes";
-import { IProject } from "./IProject";
+import type { ClientStatus } from "../types/ClientTypes";
+import type { IProject } from "./IProject";
 
 export interface IClient {
   readonly id: number;

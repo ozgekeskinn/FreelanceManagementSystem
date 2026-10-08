@@ -1,5 +1,5 @@
-import { ITask } from "../interfaces/ITask";
-import { TaskStatus, TaskPriority } from "../types/TaskTypes";
+import type { ITask } from "../interfaces/ITask";
+import type { TaskStatus, TaskPriority } from "../types/TaskTypes";
 
 export class Task implements ITask {
   constructor(

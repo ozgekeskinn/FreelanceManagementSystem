@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test:business": "npm run build && node dist/tests/runBusinessRuleTests.js"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -1,9 +1,9 @@
-import { IClient } from "../interfaces/IClient";
-import { IProject } from "../interfaces/IProject";
-import { ClientStatus } from "../types/ClientTypes";
+import type { IClient } from "../interfaces/IClient";
+import type { IProject } from "../interfaces/IProject";
+import type { ClientStatus } from "../types/ClientTypes";
 
 export class Client implements IClient {
-  private _projects: IProject[] = [];
+  private readonly _projects: IProject[] = [];
 
   constructor(
     public readonly id: number,
